@@ -8,6 +8,7 @@
 // 
 //
 
+#include "Arduino.h"; //Needed since v1.0 of arduino IDE.
 #include "CDC.h";
 
 CDCClass CDC; //TODO: Check for a better way to do this...
