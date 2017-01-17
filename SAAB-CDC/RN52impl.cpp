@@ -164,18 +164,18 @@ void RN52impl::initialize() {
         case 83 ... 97:                             // PCB v4.3 (100K/10K Ohm network)
             Serial.println(F("Hardware version: v4.3"));
             digitalWrite(SN_XCEIVER_RS_PIN,LOW);    // This pin needs to be pulled low, otherwise SN65HVD251D CAN transciever goes into sleep mode
-            digitalWrite(BT_PWREN_PIN,HIGH); // RN52 will not be restartable if rebooted with PWREN low. No point in pulling low again. According to RN52 DS70005120A p14 (section 2.5), cannot power down vreg.
+            digitalWrite(BT_PWREN_PIN,HIGH);        // RN52 will not be restartable if rebooted with PWREN low. No point in pulling low again. According to RN52 DS70005120A p14 (section 2.5), cannot power down vreg.
             break;
         case 161 ... 175:                           // PCB v5.0 (100K/20K Ohm network)
             Serial.println(F("Hardware version: v5.0"));
             digitalWrite(SN_XCEIVER_RS_PIN,LOW);    // This pin needs to be pulled low, otherwise SN65HVD251D CAN transciever goes into sleep mode
-            digitalWrite(BT_PWREN_PIN,HIGH); // RN52 will not be restartable if rebooted with PWREN low. No point in pulling low again. According to RN52 DS70005120A p14 (section 2.5), cannot power down vreg.
+            digitalWrite(BT_PWREN_PIN,HIGH);        // RN52 will not be restartable if rebooted with PWREN low. No point in pulling low again. According to RN52 DS70005120A p14 (section 2.5), cannot power down vreg.
             configRN52postEnable = true;
             break;
         case 197 ... 213:                           // PCB v5.1 (100K/25K Ohm network)
             Serial.println(F("Hardware version: v5.1"));
             digitalWrite(SN_XCEIVER_RS_PIN,LOW);    // This pin needs to be pulled low, otherwise SN65HVD251D CAN transciever goes into sleep mode
-            digitalWrite(BT_PWREN_PIN,HIGH); // RN52 will not be restartable if rebooted with PWREN low. No point in pulling low again. According to RN52 DS70005120A p14 (section 2.5), cannot power down vreg.
+            digitalWrite(BT_PWREN_PIN,HIGH);        // RN52 will not be restartable if rebooted with PWREN low. No point in pulling low again. According to RN52 DS70005120A p14 (section 2.5), cannot power down vreg.
             // Need to add 555 stuff?
             configRN52postEnable = true;
             break;
