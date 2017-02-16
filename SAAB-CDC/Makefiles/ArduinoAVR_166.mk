@@ -3,12 +3,12 @@
 # ----------------------------------
 # Embedded Computing on Xcode
 #
-# Copyright © Rei VILO, 2010-2016
+# Copyright © Rei VILO, 2010-2017
 # http://embedxcode.weebly.com
 # All rights reserved
 #
 #
-# Last update: Mar 28, 2015 release 4.4.2
+# Last update: Nov 16, 2016 release 5.3.7
 
 
 
@@ -40,15 +40,15 @@
 
 PLATFORM         := Arduino
 BUILD_CORE       := avr
-PLATFORM_TAG      = ARDUINO=10606 ARDUINO_ARCH_AVR EMBEDXCODE=$(RELEASE_NOW) ARDUINO_$(BOARD_NAME) $(filter __%__ ,$(GCC_PREPROCESSOR_DEFINITIONS))
+PLATFORM_TAG      = ARDUINO=10801 ARDUINO_ARCH_AVR EMBEDXCODE=$(RELEASE_NOW) ARDUINO_$(BOARD_NAME) $(filter __%__ ,$(GCC_PREPROCESSOR_DEFINITIONS))
 APPLICATION_PATH := $(ARDUINO_PATH)
-PLATFORM_VERSION := AVR $(ARDUINO_AVR_RELEASE) for Arduino $(ARDUINO_CC_RELEASE)
+PLATFORM_VERSION := AVR $(ARDUINO_AVR_RELEASE) for Arduino $(ARDUINO_IDE_RELEASE)
 
 HARDWARE_PATH     = $(ARDUINO_AVR_PATH)/hardware/avr/$(ARDUINO_AVR_RELEASE)
 
 # With ArduinoCC 1.6.6, AVR 1.6.9 used to be under ~/Library
-TOOL_CHAIN_PATH   = $(ARDUINO_AVR_PATH)/tools/avr-gcc/$(AVR_GCC_RELEASE)
-OTHER_TOOLS_PATH  = $(ARDUINO_AVR_PATH)/tools/avrdude/$(AVRDUDE_RELEASE)
+TOOL_CHAIN_PATH   = $(ARDUINO_AVR_PATH)/tools/avr-gcc/$(ARDUINO_GCC_AVR_RELEASE)
+OTHER_TOOLS_PATH  = $(ARDUINO_AVR_PATH)/tools/avrdude/$(ARDUINO_AVRDUDE_RELEASE)
 
 # With ArduinoCC 1.6.7, AVR 1.6.9 is back under Arduino.app
 ifeq ($(wildcard $(TOOL_CHAIN_PATH)),)
@@ -65,6 +65,7 @@ BOARDS_TXT       := $(HARDWARE_PATH)/boards.txt
 BOARD_NAME        = $(call PARSE_BOARD,$(BOARD_TAG),build.board)
 
 ARDUINO_NAME         =  $(call PARSE_BOARD,$(BOARD_TAG),build.board)
+BUILD_CORE           = avr
 
 
 # Sketchbook/Libraries path
@@ -152,8 +153,7 @@ endif
 
 # Two locations for Arduino libraries
 #
-APP_LIB_PATH     = $(APPLICATION_PATH)/libraries
-APP_LIB_PATH    += $(HARDWARE_PATH)/libraries
+APP_LIB_PATH    = $(HARDWARE_PATH)/libraries
 
 avr166_20    = $(foreach dir,$(APP_LIB_PATH),$(patsubst %,$(dir)/%,$(APP_LIBS_LIST)))
 avr166_20   += $(foreach dir,$(APP_LIB_PATH),$(patsubst %,$(dir)/%/utility,$(APP_LIBS_LIST)))
@@ -170,15 +170,32 @@ APP_LIB_OBJS     = $(patsubst $(HARDWARE_PATH)/%.cpp,$(OBJDIR)/%.cpp.o,$(APP_LIB
 APP_LIB_OBJS    += $(patsubst $(HARDWARE_PATH)/%.c,$(OBJDIR)/%.c.o,$(APP_LIB_C_SRC))
 
 #BUILD_APP_LIBS_LIST = $(subst $(BUILD_APP_LIB_PATH)/, ,$(APP_LIB_CPP_SRC))
+BUILD_APP_LIB_PATH     = $(APPLICATION_PATH)/libraries
+
+avr166_30    = $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%,$(APP_LIBS_LIST)))
+avr166_30   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/utility,$(APP_LIBS_LIST)))
+avr166_30   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src,$(APP_LIBS_LIST)))
+avr166_30   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src/utility,$(APP_LIBS_LIST)))
+avr166_30   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src/arch/$(BUILD_CORE),$(APP_LIBS_LIST)))
+avr166_30   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src/$(BUILD_CORE),$(APP_LIBS_LIST)))
+
+BUILD_APP_LIB_CPP_SRC = $(foreach dir,$(avr166_30),$(wildcard $(dir)/*.cpp)) # */
+BUILD_APP_LIB_C_SRC   = $(foreach dir,$(avr166_30),$(wildcard $(dir)/*.c)) # */
+BUILD_APP_LIB_H_SRC   = $(foreach dir,$(avr166_30),$(wildcard $(dir)/*.h)) # */
+
+BUILD_APP_LIB_OBJS     = $(patsubst $(APPLICATION_PATH)/%.cpp,$(OBJDIR)/%.cpp.o,$(BUILD_APP_LIB_CPP_SRC))
+BUILD_APP_LIB_OBJS    += $(patsubst $(APPLICATION_PATH)/%.c,$(OBJDIR)/%.c.o,$(BUILD_APP_LIB_C_SRC))
 
 APP_LIBS_LOCK = 1
 
 CORE_C_SRCS     = $(wildcard $(CORE_LIB_PATH)/*.c $(CORE_LIB_PATH)/*/*.c) # */
 
-avr166_30              = $(filter-out %main.cpp, $(wildcard $(CORE_LIB_PATH)/*.cpp $(CORE_LIB_PATH)/*/*.cpp $(CORE_LIB_PATH)/*/*/*.cpp $(CORE_LIB_PATH)/*/*/*/*.cpp)) # */
-CORE_CPP_SRCS     = $(filter-out %/$(EXCLUDE_LIST),$(avr166_30))
-CORE_AS1_SRCS_OBJ = $(patsubst %.S,%.S.o,$(filter %S, $(CORE_AS_SRCS)))
-CORE_AS2_SRCS_OBJ = $(patsubst %.s,%.s.o,$(filter %s, $(CORE_AS_SRCS)))
+avr166_40              = $(filter-out %main.cpp, $(wildcard $(CORE_LIB_PATH)/*.cpp $(CORE_LIB_PATH)/*/*.cpp $(CORE_LIB_PATH)/*/*/*.cpp $(CORE_LIB_PATH)/*/*/*/*.cpp)) # */
+CORE_CPP_SRCS     = $(filter-out %/$(EXCLUDE_LIST),$(avr166_40))
+CORE_AS1_SRCS        = $(shell find $(CORE_LIB_PATH) -name \*.S)
+CORE_AS1_SRCS_OBJ = $(patsubst %.S,%.S.o,$(filter %S, $(CORE_AS1_SRCS)))
+CORE_AS2_SRCS        = $(shell find $(CORE_LIB_PATH) -name \*.s)
+CORE_AS2_SRCS_OBJ = $(patsubst %.s,%.s.o,$(filter %s, $(CORE_AS2_SRCS)))
 
 CORE_OBJ_FILES  += $(CORE_C_SRCS:.c=.c.o) $(CORE_CPP_SRCS:.cpp=.cpp.o) $(CORE_AS1_SRCS_OBJ) $(CORE_AS2_SRCS_OBJ)
 #    CORE_OBJS       += $(patsubst $(CORE_LIB_PATH)/%,$(OBJDIR)/%,$(CORE_OBJ_FILES))
@@ -192,14 +209,15 @@ CORE_LIBS_LOCK = 1
 #
 USB_VID     := $(call PARSE_BOARD,$(BOARD_TAG),build.vid)
 USB_PID     := $(call PARSE_BOARD,$(BOARD_TAG),build.pid)
+USB_VENDOR  := $(call PARSE_BOARD,$(BOARD_TAG),build.usb_manufacturer)
 USB_PRODUCT := $(call PARSE_BOARD,$(BOARD_TAG),build.usb_product)
 
 ifneq ($(USB_VID),)
-USB_FLAGS    = -DUSB_VID=$(USB_VID)
-USB_FLAGS   += -DUSB_PID=$(USB_PID)
-#USB_FLAGS   += -DUSBCON
-USB_FLAGS   += -DUSB_MANUFACTURER=''
-USB_FLAGS   += -DUSB_PRODUCT='$(USB_PRODUCT)'
+    USB_FLAGS    = -DUSB_VID=$(USB_VID)
+    USB_FLAGS   += -DUSB_PID=$(USB_PID)
+    #USB_FLAGS   += -DUSBCON
+    USB_FLAGS   += -DUSB_MANUFACTURER='$(USB_VENDOR)'
+    USB_FLAGS   += -DUSB_PRODUCT='$(USB_PRODUCT)'
 endif
 
 # Arduino Leonardo serial 1200 reset
@@ -214,7 +232,9 @@ endif
 INCLUDE_PATH    = $(CORE_LIB_PATH) $(APP_LIB_PATH) $(VARIANT_PATH)
 INCLUDE_PATH   += $(sort $(dir $(APP_LIB_CPP_SRC) $(APP_LIB_C_SRC) $(APP_LIB_H_SRC)))
 #INCLUDE_PATH   += $(sort $(dir $(APP_LIB_H_SRC)))
-INCLUDE_PATH   += $(sort $(dir $(BUILD_APP_LIB_CPP_SRC) $(BUILD_APP_LIB_C_SRC)))
+INCLUDE_PATH   += $(sort $(dir $(BUILD_APP_LIB_CPP_SRC) $(BUILD_APP_LIB_C_SRC) $(BUILD_APP_LIB_H_SRC)))
+
+FIRST_O_IN_A     = $$(find . -name wiring_pulse.S.o)
 
 
 # Flags for gcc, g++ and linker
@@ -224,19 +244,19 @@ INCLUDE_PATH   += $(sort $(dir $(BUILD_APP_LIB_CPP_SRC) $(BUILD_APP_LIB_C_SRC)))
 #
 CPPFLAGS     = $(OPTIMISATION) $(WARNING_FLAGS)
 CPPFLAGS    += -$(MCU_FLAG_NAME)=$(MCU) -DF_CPU=$(F_CPU)
-CPPFLAGS    += -ffunction-sections	-fdata-sections
+CPPFLAGS    += -ffunction-sections -fdata-sections
 CPPFLAGS    += $(addprefix -D, printf=iprintf $(PLATFORM_TAG))
 CPPFLAGS    += $(addprefix -I, $(INCLUDE_PATH))
 
 # Specific CFLAGS for gcc only
 # gcc uses CPPFLAGS and CFLAGS
 #
-CFLAGS       =
+CFLAGS       = -std=gnu11
 
 # Specific CXXFLAGS for g++ only
 # g++ uses CPPFLAGS and CXXFLAGS
 #
-CXXFLAGS     = -fdata-sections -fno-threadsafe-statics
+CXXFLAGS     = -fdata-sections -fno-threadsafe-statics -std=gnu++11 -fpermissive -fno-exceptions
 
 # Specific ASFLAGS for gcc assembler only
 # gcc assembler uses CPPFLAGS and ASFLAGS
@@ -247,7 +267,7 @@ ASFLAGS      = -x assembler-with-cpp
 # linker uses CPPFLAGS and LDFLAGS
 #
 LDFLAGS      = $(OPTIMISATION) $(WARNING_FLAGS)
-LDFLAGS     += -$(MCU_FLAG_NAME)=$(MCU) -Wl,--gc-sections 
+LDFLAGS     += -$(MCU_FLAG_NAME)=$(MCU) -Wl,--gc-sections
 
 # Specific OBJCOPYFLAGS for objcopy only
 # objcopy uses OBJCOPYFLAGS only
@@ -256,13 +276,13 @@ LDFLAGS     += -$(MCU_FLAG_NAME)=$(MCU) -Wl,--gc-sections
 
 # Target
 #
-TARGET_HEXBIN = $(TARGET_HEX)
-#TARGET_EEP    = $(OBJDIR)/$(TARGET).hex
+TARGET_HEXBIN    = $(TARGET_HEX)
+TARGET_EEP       = $(OBJDIR)/$(TARGET).eep
 
 
 # Commands
 # ----------------------------------
 # Link command
 #
-COMMAND_LINK    = $(CXX) $(OUT_PREPOSITION)$@ $(LOCAL_OBJS) $(TARGET_A) $(LDFLAGS) -LBuilds -lm
+COMMAND_LINK    = $(CC) $(OUT_PREPOSITION)$@ $(LOCAL_OBJS) $(LOCAL_ARCHIVES) $(TARGET_A) $(LDFLAGS) -LBuilds -lm
 

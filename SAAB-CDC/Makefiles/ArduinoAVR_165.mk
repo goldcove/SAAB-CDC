@@ -3,13 +3,12 @@
 # ----------------------------------
 # Embedded Computing on Xcode
 #
-# Copyright © Rei VILO, 2010-2016
+# Copyright © Rei VILO, 2010-2017
 # http://embedxcode.weebly.com
 # All rights reserved
 #
 #
-# Last update: Mar 28, 2015 release 4.4.2
-
+# Last update: Sep 29, 2016 release 5.2.9
 
 
 
@@ -34,17 +33,20 @@ else ifneq ($(findstring ADAFRUIT,$(GCC_PREPROCESSOR_DEFINITIONS)),)
 
 else
     PLATFORM         := Arduino
-    PLATFORM_TAG      = ARDUINO=10608 ARDUINO_ARCH_AVR EMBEDXCODE=$(RELEASE_NOW) ARDUINO_$(ARDUINO_NAME)
+    PLATFORM_TAG      = ARDUINO=10801 ARDUINO_ARCH_AVR EMBEDXCODE=$(RELEASE_NOW) ARDUINO_$(ARDUINO_NAME)
     APPLICATION_PATH := $(ARDUINO_PATH)
     BOARDS_TXT       := $(APPLICATION_PATH)/hardware/arduino/avr/boards.txt
 endif
 
+HARDWARE_PATH       := $(APPLICATION_PATH)/hardware/arduino/avr
+
 APP_TOOLS_PATH      := $(APPLICATION_PATH)/hardware/tools/avr/bin
-CORE_LIB_PATH       := $(APPLICATION_PATH)/hardware/arduino/avr/cores/arduino
+CORE_LIB_PATH       := $(HARDWARE_PATH)/cores/arduino
 APP_LIB_PATH        := $(APPLICATION_PATH)/libraries
-#BOARDS_TXT       := $(APPLICATION_PATH)/hardware/arduino/avr/boards.txt
+#BOARDS_TXT       := $(HARDWARE_PATH)/boards.txt
 ARDUINO_NAME         =  $(call PARSE_BOARD,$(BOARD_TAG),build.board)
 BUILD_CORE           = avr
+PLATFORM_VERSION    := 'AVR (native) for Arduino $(ARDUINO_IDE_RELEASE)'
 
 
 # Sketchbook/Libraries path
@@ -82,8 +84,7 @@ NM      = $(APP_TOOLS_PATH)/avr-nm
 # Another example of Arduino's quick and dirty job
 #
 BOARD_TAGS_LIST   = $(BOARD_TAG) $(BOARD_TAG1) $(BOARD_TAG2)
-
-SEARCH_FOR  = $(strip $(foreach t,$(1),$(call PARSE_BOARD,$(t),$(2))))
+SEARCH_FOR        = $(strip $(foreach t,$(1),$(call PARSE_BOARD,$(t),$(2))))
 
 ifeq ($(BOARD_NAME),)
     BOARD_NAME          := $(call SEARCH_FOR,$(BOARD_TAGS_LIST),name)
@@ -121,12 +122,12 @@ ifneq ($(BOARD_TAG1),)
 # Adafruit Pro Trinket uses arduino:eightanaloginputs
     avr165_10    = $(call PARSE_BOARD,$(BOARD_TAG1),build.variant)
     VARIANT      = $(patsubst arduino:%,%,$(avr165_10))
-    VARIANT_PATH = $(APPLICATION_PATH)/hardware/arduino/avr/variants/$(VARIANT)
+    VARIANT_PATH = $(HARDWARE_PATH)/variants/$(VARIANT)
 else
 # Adafruit Pro Trinket uses arduino:eightanaloginputs
     avr165_10        = $(call PARSE_BOARD,$(BOARD_TAG),build.variant)
     VARIANT      = $(patsubst arduino:%,%,$(avr165_10))
-    VARIANT_PATH = $(APPLICATION_PATH)/hardware/arduino/avr/variants/$(VARIANT)
+    VARIANT_PATH = $(HARDWARE_PATH)/variants/$(VARIANT)
 endif
 
 
@@ -153,19 +154,36 @@ APP_LIB_OBJS    += $(patsubst $(APPLICATION_PATH)/%.c,$(OBJDIR)/%.c.o,$(APP_LIB_
 
 APP_LIBS_LOCK = 1
 
+CORE_C_SRCS     = $(wildcard $(CORE_LIB_PATH)/*.c $(CORE_LIB_PATH)/*/*.c) # */
+
+avr166_30              = $(filter-out %main.cpp, $(wildcard $(CORE_LIB_PATH)/*.cpp $(CORE_LIB_PATH)/*/*.cpp $(CORE_LIB_PATH)/*/*/*.cpp $(CORE_LIB_PATH)/*/*/*/*.cpp)) # */
+CORE_CPP_SRCS     = $(filter-out %/$(EXCLUDE_LIST),$(avr166_30))
+CORE_AS1_SRCS        = $(shell find $(CORE_LIB_PATH) -name \*.S)
+CORE_AS1_SRCS_OBJ = $(patsubst %.S,%.S.o,$(filter %S, $(CORE_AS1_SRCS)))
+CORE_AS2_SRCS        = $(shell find $(CORE_LIB_PATH) -name \*.s)
+CORE_AS2_SRCS_OBJ = $(patsubst %.s,%.s.o,$(filter %s, $(CORE_AS2_SRCS)))
+
+CORE_OBJ_FILES  += $(CORE_C_SRCS:.c=.c.o) $(CORE_CPP_SRCS:.cpp=.cpp.o) $(CORE_AS1_SRCS_OBJ) $(CORE_AS2_SRCS_OBJ)
+#    CORE_OBJS       += $(patsubst $(CORE_LIB_PATH)/%,$(OBJDIR)/%,$(CORE_OBJ_FILES))
+#CORE_OBJS       += $(patsubst $(APPLICATION_PATH)/%,$(OBJDIR)/%,$(CORE_OBJ_FILES))
+CORE_OBJS       += $(patsubst $(HARDWARE_PATH)/%,$(OBJDIR)/%,$(CORE_OBJ_FILES))
+
+CORE_LIBS_LOCK = 1
+
 
 # Arduino Leonardo USB PID VID
 #
 USB_VID     := $(call PARSE_BOARD,$(BOARD_TAG),build.vid)
 USB_PID     := $(call PARSE_BOARD,$(BOARD_TAG),build.pid)
+USB_VENDOR  := $(call PARSE_BOARD,$(BOARD_TAG),build.usb_manufacturer)
 USB_PRODUCT := $(call PARSE_BOARD,$(BOARD_TAG),build.usb_product)
 
 ifneq ($(USB_VID),)
-USB_FLAGS    = -DUSB_VID=$(USB_VID)
-USB_FLAGS   += -DUSB_PID=$(USB_PID)
-#USB_FLAGS   += -DUSBCON
-USB_FLAGS   += -DUSB_MANUFACTURER=''
-USB_FLAGS   += -DUSB_PRODUCT='$(USB_PRODUCT)'
+    USB_FLAGS    = -DUSB_VID=$(USB_VID)
+    USB_FLAGS   += -DUSB_PID=$(USB_PID)
+    #USB_FLAGS   += -DUSBCON
+    USB_FLAGS   += -DUSB_MANUFACTURER='$(USB_VENDOR)'
+    USB_FLAGS   += -DUSB_PRODUCT='$(USB_PRODUCT)'
 endif
 
 # Arduino Leonardo serial 1200 reset
@@ -180,6 +198,8 @@ endif
 INCLUDE_PATH    = $(CORE_LIB_PATH) $(APP_LIB_PATH) $(VARIANT_PATH)
 INCLUDE_PATH   += $(sort $(dir $(APP_LIB_CPP_SRC) $(APP_LIB_C_SRC) $(APP_LIB_H_SRC)))
 INCLUDE_PATH   += $(sort $(dir $(BUILD_APP_LIB_CPP_SRC) $(BUILD_APP_LIB_C_SRC)))
+
+FIRST_O_IN_A     = $$(find . -name wiring_pulse.S.o)
 
 
 # Flags for gcc, g++ and linker
@@ -196,12 +216,12 @@ CPPFLAGS    += $(addprefix -I, $(INCLUDE_PATH))
 # Specific CFLAGS for gcc only
 # gcc uses CPPFLAGS and CFLAGS
 #
-CFLAGS       =
+CFLAGS       = -std=gnu11
 
 # Specific CXXFLAGS for g++ only
 # g++ uses CPPFLAGS and CXXFLAGS
 #
-CXXFLAGS     = -fdata-sections -fno-threadsafe-statics -std=gnu++11 -fno-exceptions
+CXXFLAGS     = -fdata-sections -fno-threadsafe-statics -std=gnu++11 -fpermissive -fno-exceptions
 
 # Specific ASFLAGS for gcc assembler only
 # gcc assembler uses CPPFLAGS and ASFLAGS
@@ -212,7 +232,7 @@ ASFLAGS      = -x assembler-with-cpp
 # linker uses CPPFLAGS and LDFLAGS
 #
 LDFLAGS      = $(OPTIMISATION) $(WARNING_FLAGS)
-LDFLAGS     += -$(MCU_FLAG_NAME)=$(MCU) -Wl,--gc-sections 
+LDFLAGS     += -$(MCU_FLAG_NAME)=$(MCU) -Wl,--gc-sections
 
 # Specific OBJCOPYFLAGS for objcopy only
 # objcopy uses OBJCOPYFLAGS only
@@ -221,13 +241,13 @@ LDFLAGS     += -$(MCU_FLAG_NAME)=$(MCU) -Wl,--gc-sections
 
 # Target
 #
-TARGET_HEXBIN = $(TARGET_HEX)
-#TARGET_EEP    = $(OBJDIR)/$(TARGET).hex
+TARGET_HEXBIN    = $(TARGET_HEX)
+TARGET_EEP       = $(OBJDIR)/$(TARGET).eep
 
 
 # Commands
 # ----------------------------------
 # Link command
 #
-COMMAND_LINK    = $(CXX) $(OUT_PREPOSITION)$@ $(LOCAL_OBJS) $(TARGET_A) $(LDFLAGS) -LBuilds -lm
+COMMAND_LINK    = $(CC) $(OUT_PREPOSITION)$@ $(LOCAL_OBJS) $(LOCAL_ARCHIVES) $(TARGET_A) $(LDFLAGS) -LBuilds -lm
 

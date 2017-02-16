@@ -3,7 +3,7 @@
 # ----------------------------------
 # Embedded Computing on Xcode
 #
-# Copyright © Rei VILO, 2010-2016
+# Copyright © Rei VILO, 2010-2017
 # http://embedxcode.weebly.com
 # All rights reserved
 #
@@ -17,27 +17,21 @@ include $(MAKEFILE_PATH)/About.mk
 # ----------------------------------
 #
 PLATFORM         := panStamp
-PLATFORM_TAG      = ARDUINO=10600 ARDUINO_PANSTAMP_AVR ARDUINO_ARCH_AVR EMBEDXCODE=$(RELEASE_NOW) PANSTAMP_AVR
+PLATFORM_TAG      = ARDUINO=10801 ARDUINO_PANSTAMP_AVR ARDUINO_ARCH_AVR EMBEDXCODE=$(RELEASE_NOW) PANSTAMP_AVR
 APPLICATION_PATH := $(PANSTAMP_AVR_PATH)
-PLATFORM_VERSION := AVR $(PANSTAMP_AVR_RELEASE) for Arduino $(ARDUINO_CC_RELEASE)
+PLATFORM_VERSION := AVR $(PANSTAMP_AVR_RELEASE) for Arduino $(ARDUINO_IDE_RELEASE)
 
 HARDWARE_PATH     = $(APPLICATION_PATH)/hardware/avr/$(PANSTAMP_AVR_RELEASE)
 #TOOL_CHAIN_PATH   = $(ARDUINO_PATH)/hardware/tools/avr
 #OTHER_TOOLS_PATH  = $(ARDUINO_PATH)/hardware/tools/avr
-TOOL_CHAIN_PATH   = $(PANSTAMP_AVR_PATH)/tools/avr-gcc/$(AVR_GCC_RELEASE)
-OTHER_TOOLS_PATH  = $(PANSTAMP_AVR_PATH)/tools/avrdude/$(AVRDUDE_RELEASE)
+TOOL_CHAIN_PATH   = $(PANSTAMP_AVR_PATH)/tools/avr-gcc/$(ARDUINO_GCC_AVR_RELEASE)
+OTHER_TOOLS_PATH  = $(PANSTAMP_AVR_PATH)/tools/avrdude/$(ARDUINO_AVRDUDE_RELEASE)
 
 AVRDUDE_PATH         = $(OTHER_TOOLS_PATH)
 
 BUILD_CORE       = avr
 BOARDS_TXT      := $(HARDWARE_PATH)/boards.txt
 BUILD_CORE       = $(call PARSE_BOARD,$(BOARD_TAG),build.core)
-
-#UPLOADER            = teensy_flash
-# New with Teensyduino 1.21
-#TEENSY_FLASH_PATH   = $(APPLICATION_PATH)/hardware/tools/avr/bin
-#TEENSY_POST_COMPILE = $(TEENSY_FLASH_PATH)/teensy_post_compile
-#TEENSY_REBOOT       = $(TEENSY_FLASH_PATH)/teensy_reboot
 
 APP_TOOLS_PATH      := $(TOOL_CHAIN_PATH)/bin
 CORE_LIB_PATH       := $(HARDWARE_PATH)/cores/panstamp
@@ -80,6 +74,7 @@ p1100   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/utility,$(A
 p1100   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src,$(APP_LIBS_LIST)))
 p1100   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src/utility,$(APP_LIBS_LIST)))
 p1100   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src/arch/$(BUILD_CORE),$(APP_LIBS_LIST)))
+p1100   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src/$(BUILD_CORE),$(APP_LIBS_LIST)))
 
 BUILD_APP_LIB_CPP_SRC = $(foreach dir,$(p1100),$(wildcard $(dir)/*.cpp)) # */
 BUILD_APP_LIB_C_SRC   = $(foreach dir,$(p1100),$(wildcard $(dir)/*.c)) # */
@@ -135,7 +130,7 @@ NM      = $(APP_TOOLS_PATH)/avr-nm
 MCU_FLAG_NAME   = mmcu
 MCU             = $(call PARSE_BOARD,$(BOARD_TAG),build.mcu)
 F_CPU           = $(call PARSE_BOARD,$(BOARD_TAG),build.f_cpu)
-OPTIMISATION    = -Os
+OPTIMISATION   ?= -Os
 
 INCLUDE_PATH    = $(CORE_LIB_PATH) $(APP_LIB_PATH) $(VARIANT_PATH) $(HARDWARE_PATH)
 INCLUDE_PATH   += $(sort $(dir $(APP_LIB_CPP_SRC) $(APP_LIB_C_SRC) $(APP_LIB_H_SRC)))
@@ -193,5 +188,5 @@ TARGET_EEP    = $(OBJDIR)/$(TARGET).eep
 # ----------------------------------
 # Link command
 #
-COMMAND_LINK = $(CC) $(OUT_PREPOSITION)$@ $(LOCAL_OBJS) $(TARGET_A) -LBuilds $(LDFLAGS)
+COMMAND_LINK = $(CC) $(OUT_PREPOSITION)$@ $(LOCAL_OBJS) $(LOCAL_ARCHIVES) $(TARGET_A) -LBuilds $(LDFLAGS)
 

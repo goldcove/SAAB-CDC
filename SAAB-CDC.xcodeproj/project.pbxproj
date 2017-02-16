@@ -349,6 +349,90 @@
 			passBuildSettingsInEnvironment = 1;
 			productName = Upload;
 		};
+		BBBB170216110647BB000001 /* Fast */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = fast;
+			buildConfigurationList = BB2B170216110647BB000001 /* Build configuration list for PBXLegacyTarget "Fast" */;
+			buildPhases = (
+			);
+			buildToolPath = make;
+			buildWorkingDirectory = "$(PROJECT)";
+			dependencies = (
+			);
+			name = Fast;
+			passBuildSettingsInEnvironment = 1;
+			productName = Fast;
+			};
+		BBBB170216110647BB000002 /* Make */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = make;
+			buildConfigurationList = BB2B170216110647BB000002 /* Build configuration list for PBXLegacyTarget "Make" */;
+			buildPhases = (
+			);
+			buildToolPath = make;
+			buildWorkingDirectory = "$(PROJECT)";
+			dependencies = (
+			);
+			name = Make;
+			passBuildSettingsInEnvironment = 1;
+			productName = Make;
+			};
+		BBBB170216110647BB000003 /* Style */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = style;
+			buildConfigurationList = BB2B170216110647BB000003 /* Build configuration list for PBXLegacyTarget "Style" */;
+			buildPhases = (
+			);
+			buildToolPath = make;
+			buildWorkingDirectory = "$(PROJECT)";
+			dependencies = (
+			);
+			name = Style;
+			passBuildSettingsInEnvironment = 1;
+			productName = Style;
+			};
+		BBBB170216110647BB000004 /* Document */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = document;
+			buildConfigurationList = BB2B170216110647BB000004 /* Build configuration list for PBXLegacyTarget "Document" */;
+			buildPhases = (
+			);
+			buildToolPath = make;
+			buildWorkingDirectory = "$(PROJECT)";
+			dependencies = (
+			);
+			name = Document;
+			passBuildSettingsInEnvironment = 1;
+			productName = Document;
+			};
+		BBBB170216110647BB000005 /* Distribute */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = distribute;
+			buildConfigurationList = BB2B170216110647BB000005 /* Build configuration list for PBXLegacyTarget "Distribute" */;
+			buildPhases = (
+			);
+			buildToolPath = make;
+			buildWorkingDirectory = "$(PROJECT)";
+			dependencies = (
+			);
+			name = Distribute;
+			passBuildSettingsInEnvironment = 1;
+			productName = Distribute;
+			};
+		BBBB170216110647BB000006 /* Debug */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = debug;
+			buildConfigurationList = BB2B170216110647BB000006 /* Build configuration list for PBXLegacyTarget "Debug" */;
+			buildPhases = (
+			);
+			buildToolPath = make;
+			buildWorkingDirectory = "$(PROJECT)";
+			dependencies = (
+			);
+			name = Debug;
+			passBuildSettingsInEnvironment = 1;
+			productName = Debug;
+			};
 /* End PBXLegacyTarget section */
 
 /* Begin PBXNativeTarget section */
@@ -376,6 +460,24 @@
 				LastUpgradeCheck = 0800;
 				ORGANIZATIONNAME = SEK;
 				TargetAttributes = {
+					BBBB170216110647BB000001 = {
+						CreatedOnToolsVersion = 6.1;
+					};
+					BBBB170216110647BB000002 = {
+						CreatedOnToolsVersion = 6.1;
+					};
+					BBBB170216110647BB000003 = {
+						CreatedOnToolsVersion = 6.1;
+					};
+					BBBB170216110647BB000004 = {
+						CreatedOnToolsVersion = 6.1;
+					};
+					BBBB170216110647BB000005 = {
+						CreatedOnToolsVersion = 6.1;
+					};
+					BBBB170216110647BB000006 = {
+						CreatedOnToolsVersion = 6.1;
+					};
 					A80EF2F31B2244E800BF40A6 = {
 						CreatedOnToolsVersion = 6.3.2;
 					};
@@ -408,6 +510,12 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				BBBB170216110647BB000001 /* Fast */,
+				BBBB170216110647BB000002 /* Make */,
+				BBBB170216110647BB000003 /* Style */,
+				BBBB170216110647BB000004 /* Document */,
+				BBBB170216110647BB000005 /* Distribute */,
+				BBBB170216110647BB000006 /* Debug */,
 				A80EF2F31B2244E800BF40A6 /* All */,
 				A80EF2F41B2244E800BF40A6 /* Build */,
 				A80EF2F51B2244E800BF40A6 /* Boards */,
@@ -598,6 +706,78 @@
 			};
 			name = Release;
 		};
+		BB3B170216110647BB000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		BB4B170216110647BB000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		BB3B170216110647BB000002 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		BB4B170216110647BB000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		BB3B170216110647BB000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		BB4B170216110647BB000003 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		BB3B170216110647BB000004 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		BB4B170216110647BB000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		BB3B170216110647BB000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		BB4B170216110647BB000005 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		BB3B170216110647BB000006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		BB4B170216110647BB000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -664,7 +844,62 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		BB2B170216110647BB000001 /* Build configuration list for PBXLegacyTarget "Fast" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB3B170216110647BB000001 /* Debug */,
+				BB4B170216110647BB000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB2B170216110647BB000002 /* Build configuration list for PBXLegacyTarget "Make" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB3B170216110647BB000002 /* Debug */,
+				BB4B170216110647BB000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB2B170216110647BB000003 /* Build configuration list for PBXLegacyTarget "Style" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB3B170216110647BB000003 /* Debug */,
+				BB4B170216110647BB000003 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB2B170216110647BB000004 /* Build configuration list for PBXLegacyTarget "Document" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB3B170216110647BB000004 /* Debug */,
+				BB4B170216110647BB000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB2B170216110647BB000005 /* Build configuration list for PBXLegacyTarget "Distribute" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB3B170216110647BB000005 /* Debug */,
+				BB4B170216110647BB000005 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB2B170216110647BB000006 /* Build configuration list for PBXLegacyTarget "Debug" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB3B170216110647BB000006 /* Debug */,
+				BB4B170216110647BB000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 	};
 	rootObject = A80EF2EF1B2244E800BF40A6 /* Project object */;
 }
+

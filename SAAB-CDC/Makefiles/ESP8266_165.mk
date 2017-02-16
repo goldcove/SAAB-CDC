@@ -3,12 +3,12 @@
 # ----------------------------------
 # Embedded Computing on Xcode
 #
-# Copyright © Rei VILO, 2010-2016
+# Copyright © Rei VILO, 2010-2017
 # http://embedxcode.weebly.com
 # All rights reserved
 #
 #
-# Last update: Jan 16, 2016 release 4.1.7
+# Last update: Aug 11, 2016 release 5.1.2
 
 
 
@@ -18,9 +18,9 @@ include $(MAKEFILE_PATH)/About.mk
 # ----------------------------------
 #
 PLATFORM         := esp8266
-PLATFORM_TAG      = ARDUINO=10605 ARDUINO_ARCH_ESP8266 EMBEDXCODE=$(RELEASE_NOW) ESP8266
+PLATFORM_TAG      = ARDUINO=10801 ARDUINO_ARCH_ESP8266 EMBEDXCODE=$(RELEASE_NOW) ESP8266 ARDUINO_BOARD=ESP8266_NODEMCU
 APPLICATION_PATH := $(ESP8266_PATH)
-PLATFORM_VERSION := $(ESP8266_RELEASE) for Arduino $(ARDUINO_CC_RELEASE)
+PLATFORM_VERSION := $(ESP8266_RELEASE) for Arduino $(ARDUINO_IDE_RELEASE)
 
 HARDWARE_PATH     = $(APPLICATION_PATH)/hardware/esp8266/$(ESP8266_RELEASE)
 TOOL_CHAIN_PATH   = $(APPLICATION_PATH)/tools/xtensa-lx106-elf-gcc/$(EXTENSA_RELEASE)
@@ -45,17 +45,23 @@ SEARCH_FOR  = $(strip $(foreach t,$(1),$(call PARSE_BOARD,$(t),$(2))))
 BUILD_FLASH_SIZE   = $(firstword $(call SEARCH_FOR,$(BOARD_TAGS_LIST),build.flash_size))
 BUILD_FLASH_FREQ   = $(call SEARCH_FOR,$(BOARD_TAGS_LIST),build.flash_freq)
 
-#ifeq ($(UPLOADER),esptool.py)
-#    UPLOADER_PATH       = $(APPLICATION_PATH)/hardware/tools/esp8266
-#    UPLOADER_EXEC       = $(UPLOADER_PATH)/esptool.py
-#    UPLOADER_OPTS       = --baud $(call PARSE_BOARD,$(BOARD_TAG),upload.speed)
-#else
+ifeq ($(UPLOADER),espota)
+# ~
+    UPLOADER_PATH       = $(HARDWARE_PATH)/tools
+    UPLOADER_EXEC       = /usr/bin/python $(UPLOADER_PATH)/espota.py
+    UPLOADER_OPTS       = -d
+
+    ifeq ($(SSH_ADDRESS),)
+        $(eval SSH_ADDRESS = $(shell grep ^SSH_ADDRESS '$(BOARD_FILE)' | cut -d= -f 2- | sed 's/^ //'))
+    endif
+# ~~
+else
     UPLOADER            = esptool
     UPLOADER_PATH       = $(OTHER_TOOLS_PATH)/esptool/$(ESPTOOLS_RELEASE)
     UPLOADER_EXEC       = $(UPLOADER_PATH)/esptool
     UPLOADER_OPTS       = -vv -cd $(call PARSE_BOARD,$(BOARD_TAG),upload.resetmethod)
     UPLOADER_OPTS      += -cb $(call PARSE_BOARD,$(BOARD_TAG),upload.speed)
-#endif
+endif
 
 APP_TOOLS_PATH      := $(TOOL_CHAIN_PATH)/bin
 CORE_LIB_PATH       := $(HARDWARE_PATH)/cores/esp8266
@@ -118,7 +124,7 @@ FIRST_O_IN_A         = $(patsubst $(APPLICATION_PATH)/%,$(OBJDIR)/%,$(esp001))
 #$(eval SDK_VERSION = $(shell cat $(UPLOADER_PATH)/sdk/version))
 #ifeq ($(SDK_VERSION),1.0.0)
 #    BOARD_TAG      := generic
-    L_FLAGS         = -lm -lgcc -lhal -lphy -lnet80211 -llwip -lwpa -lmain -lpp -lsmartconfig -lwps -lcrypto -laxtls
+    L_FLAGS         = -lm -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lcrypto -lmain -lwps -laxtls -lsmartconfig -lmesh -lwpa2 -llwip_gcc -lstdc++
     ADDRESS_BIN1     = 00000
 #    ADDRESS_BIN2    = 40000
 #else
@@ -171,9 +177,10 @@ NM      = $(APP_TOOLS_PATH)/xtensa-lx106-elf-nm
 MCU_FLAG_NAME    = # mmcu
 MCU              = $(call PARSE_BOARD,$(BOARD_TAG),build.mcu)
 F_CPU            = $(call PARSE_BOARD,$(BOARD_TAG),build.f_cpu)
-OPTIMISATION     = -Os
+OPTIMISATION    ?= -Os -g
 
 INCLUDE_PATH     = $(HARDWARE_PATH)/tools/sdk/include
+INCLUDE_PATH    += $(HARDWARE_PATH)/tools/sdk/lwip/include
 INCLUDE_PATH    += $(CORE_LIB_PATH)
 INCLUDE_PATH    += $(VARIANT_PATH)
 
@@ -185,8 +192,9 @@ LDSCRIPT = $(call SEARCH_FOR,$(BOARD_TAGS_LIST),build.flash_ld)
 # Common CPPFLAGS for gcc, g++, assembler and linker
 #
 CPPFLAGS     = -g $(OPTIMISATION) $(WARNING_FLAGS)
-CPPFLAGS    += -D__ets__ -DICACHE_FLASH -U__STRICT_ANSI__
+CPPFLAGS    += -D__ets__ -DICACHE_FLASH -U__STRICT_ANSI__ -DLWIP_OPEN_SRC
 CPPFLAGS    += -mlongcalls -mtext-section-literals -falign-functions=4 -MMD
+CPPFLAGS    +=  -ffunction-sections -fdata-sections
 CPPFLAGS    += -DF_CPU=$(F_CPU)
 CPPFLAGS    += $(addprefix -D, $(PLATFORM_TAG) $(BUILD_BOARD))
 CPPFLAGS    += $(addprefix -I, $(INCLUDE_PATH))
@@ -216,7 +224,7 @@ LDFLAGS     += -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
 LDFLAGS     += -L$(HARDWARE_PATH)/tools/sdk/lib
 LDFLAGS     += -L$(HARDWARE_PATH)/tools/sdk/ld
 LDFLAGS     += -T $(LDSCRIPT)
-LDFLAGS     += -Wl,-wrap,system_restart_local -Wl,-wrap,register_chipv6_phy
+LDFLAGS     += -Wl,--gc-sections -Wl,-wrap,system_restart_local -Wl,-wrap,register_chipv6_phy
 
 
 # Specific OBJCOPYFLAGS for objcopy only
@@ -233,7 +241,12 @@ TARGET_HEXBIN = $(TARGET_BIN2)
 # ----------------------------------
 # Link command
 #
-COMMAND_LINK    = $(CC) $(LDFLAGS) $(OUT_PREPOSITION)$@ -Wl,--start-group $(LOCAL_OBJS) $(TARGET_A) $(L_FLAGS) -Wl,--end-group -LBuilds
+COMMAND_LINK    = $(CC) $(LDFLAGS) $(OUT_PREPOSITION)$@ -Wl,--start-group $(LOCAL_OBJS) $(LOCAL_ARCHIVES) $(TARGET_A) $(L_FLAGS) -Wl,--end-group -LBuilds
 
-COMMAND_UPLOAD  = $(UPLOADER_EXEC) $(UPLOADER_OPTS) -cp $(USED_SERIAL_PORT) -ca 0x$(ADDRESS_BIN1) -cf Builds/$(TARGET)_$(ADDRESS_BIN1).bin
-
+ifeq ($(UPLOADER),espota)
+# ~
+    COMMAND_UPLOAD  = $(UPLOADER_EXEC) -i $(SSH_ADDRESS) -f Builds/$(TARGET)_$(ADDRESS_BIN1).bin $(UPLOADER_OPTS)
+# ~~
+else
+    COMMAND_UPLOAD  = $(UPLOADER_EXEC) $(UPLOADER_OPTS) -cp $(USED_SERIAL_PORT) -ca 0x$(ADDRESS_BIN1) -cf Builds/$(TARGET)_$(ADDRESS_BIN1).bin
+endif
