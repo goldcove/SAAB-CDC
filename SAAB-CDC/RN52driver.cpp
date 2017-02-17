@@ -29,15 +29,13 @@
 
 #define DEBUGMODE  0
 
-using namespace std;
-
 namespace RN52 {
     
     static int getVal(char c);
     
     RN52driver::RN52driver() :
-    mode(DATA), enterCommandMode(false), enterDataMode(false), state(0), profile(0), a2dpConnected(false),
-    sppConnected(false), streamingAudio(false), sppTxBufferPos(0), cmdRxBufferPos(0), currentCommand(NULL), commandQueuePos(0)
+    currentCommand(NULL), mode(DATA), enterCommandMode(false), enterDataMode(false), state(0), profile(0), a2dpConnected(false),
+    sppConnected(false), streamingAudio(false), sppTxBufferPos(0), cmdRxBufferPos(0), commandQueuePos(0)
     {}
     
     int RN52driver::fromUART(const char c)
