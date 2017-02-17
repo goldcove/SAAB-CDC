@@ -194,7 +194,6 @@ void RN52impl::initialize() {
         set_max_volume();
         set_pair_timeout();
         reboot();
-        queueCommand("G%\r"); // Was D.
         processCmdQueue();
         Serial.println(F("Configured RN52"));
     }

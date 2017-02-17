@@ -179,6 +179,8 @@ namespace RN52 {
                     		Serial.println(cmdRxBuffer+4);
                     		currentCommand = NULL;
                     	}
+                    } else if (isCmd(currentCommand, RN52_CMD_REBOOT)) {
+                        currentCommand = NULL;
                     } else {
                         // misc command (AVCRP, connect/disconnect, etc)
                         if (isCmd(cmdRxBuffer, RN52_RX_OK)) {
@@ -188,6 +190,8 @@ namespace RN52 {
                         } else if (isCmd(cmdRxBuffer, RN52_RX_WHAT)) {
                             // WTF!?
                         } else {
+                            Serial.print(F("Current command:"));
+                            Serial.println(currentCommand);
                             cmdRxBuffer[cmdRxBufferPos - 2] = 0;
                             onError(4, PROTOCOL);
 #if (DEBUGMODE==1)
