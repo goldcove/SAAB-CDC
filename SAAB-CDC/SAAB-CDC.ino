@@ -40,10 +40,10 @@ void setup() {
     Serial.print(F("Free SRAM: "));
     Serial.print(freeRam());
     Serial.println(F(" bytes"));
+    Serial.println(F("Press H for Help"));
 #endif
     Serial.println(F("Software version: v4.1"));
     BT.initialize();
-    //Serial.println(F("Press H for Help"));
     CDC.openCanBus();
 #if (DEBUGMODE==1)
     wdt_enable(WDTO_500MS); // give the loop time to do more serial diagnostic logging.
@@ -53,9 +53,6 @@ void setup() {
 }
 
 void loop() {
-#if (DEBUGMODE==1)
-    //    Serial.println(F("in loop()"));
-#endif
     time.update();
     CDC.handleCdcStatus();
     BT.update();

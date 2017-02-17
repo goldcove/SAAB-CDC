@@ -174,7 +174,7 @@ namespace RN52 {
                         currentCommand = NULL;
                     } else if (isCmd(currentCommand, RN52_CMD_DETAILS)) {
                     	if (isCmd(cmdRxBuffer, "BTA=")) {
-                    		Serial.println(cmdRxBuffer+4);
+                    		Serial.print(cmdRxBuffer + 4);
                     		currentCommand = NULL;
                     	}
                     } else if (isCmd(currentCommand, RN52_CMD_REBOOT)) {
@@ -188,7 +188,7 @@ namespace RN52 {
                         } else if (isCmd(cmdRxBuffer, RN52_RX_WHAT)) {
                             // WTF!?
                         } else {
-                            Serial.print(F("Current command:"));
+                            Serial.print(F("Current command: "));
                             Serial.println(currentCommand);
                             cmdRxBuffer[cmdRxBufferPos - 2] = 0;
                             onError(4, PROTOCOL);

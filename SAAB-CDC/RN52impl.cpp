@@ -195,13 +195,13 @@ void RN52impl::initialize() {
         set_pair_timeout();
         reboot();
         processCmdQueue();
-        Serial.println(F("Configured RN52"));
+        Serial.println(F("RN52 configuration completed!"));
     }
 }
 
 void RN52impl::processCmdQueue() {
 #if (DEBUGMODE==1)
-    Serial.println(F("Processing cmd queue."));
+    Serial.println(F("Processing command queue."));
 #endif
     do {
         update();
