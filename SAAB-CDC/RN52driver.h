@@ -59,6 +59,7 @@ namespace RN52 {
         void set_extended_features();
         void set_pair_timeout();
         void reboot();
+        void print_mac();
         void visible(bool visible);
         int sendAVCRP(AVCRP cmd);
         const char *currentCommand;

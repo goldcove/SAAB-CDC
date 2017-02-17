@@ -130,6 +130,9 @@ void RN52handler::monitor_serial_input() {
                 bt_reboot();
                 Serial.println(F("Rebooting the RN52"));
                 break;
+            case 'd':
+            	driver.print_mac();
+            	break;
             default:
                 Serial.print(F("Invalid command."));
 #if (DEBUGMODE==1) // Need the extended watchdog period to show this help.

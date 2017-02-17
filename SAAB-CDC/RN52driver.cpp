@@ -175,9 +175,10 @@ namespace RN52 {
                         parseQResponse(cmdRxBuffer);
                         currentCommand = NULL;
                     } else if (isCmd(currentCommand, RN52_CMD_DETAILS)) {
-                        // multiple lines
-                        //TODO set currentCommand to NULL after the 10th line of response
-                        currentCommand = NULL;
+                    	if (isCmd(cmdRxBuffer, "BTA=")) {
+                    		Serial.println(cmdRxBuffer+4);
+                    		currentCommand = NULL;
+                    	}
                     } else {
                         // misc command (AVCRP, connect/disconnect, etc)
                         if (isCmd(cmdRxBuffer, RN52_RX_OK)) {
@@ -443,6 +444,10 @@ namespace RN52 {
         queueCommand(RN52_CMD_REBOOT);
     }
     
+    void RN52driver::print_mac() {
+        queueCommand(RN52_CMD_DETAILS);
+    }
+
     void RN52driver::refreshState() {
         queueCommand(RN52_CMD_QUERY);
     }
