@@ -18,10 +18,11 @@
  *
  * Created by: Tim Otto
  * Created on: Jun 21, 2013
- * Modified by: Karlis Veilands
- * Modified on: May 17, 2016
+ * Modified by: Sam Thompson
+ * Last modified on: Dec 16, 2016
  */
 
+#include <avr/io.h>
 #include "RN52handler.h"
 
 RN52handler BT;
@@ -78,6 +79,10 @@ void RN52handler::bt_set_maxvol() {
     driver.set_max_volume();
 }
 
+void RN52handler::bt_reboot() {
+    driver.reboot();
+}
+
 
 /**
  * Debug function used only in 'bench' testing. Listens to input on serial console and calls out corresponding function.
@@ -91,38 +96,67 @@ void RN52handler::monitor_serial_input() {
         switch (incomingByte) {
             case 'V':
                 bt_visible();
-                Serial.println("Going _V_isible");
+                Serial.println(F("Going into Discoverable Mode"));
                 break;
             case 'I':
                 bt_invisible();
-                Serial.println("Going _I_nvisible");
+                Serial.println(F("Going into non-Discoverable/Connectable Mode"));
                 break;
             case 'C':
                 bt_reconnect();
-                Serial.println("Re_C_onnect");
+                Serial.println(F("Re-connecting to the Last Known Device"));
                 break;
             case 'D':
                 bt_disconnect();
-                Serial.println("_D_isconnect");
+                Serial.println(F("Disconnecting from the Current Device"));
                 break;
             case 'P':
                 bt_play();
-                Serial.println("_P_lay");
+                Serial.println(F("\"Play/Pause\" Current Track"));
                 break;
             case 'N':
                 bt_next();
-                Serial.println("_N_ext");
+                Serial.println(F("Skip to \"Next\" Track"));
                 break;
             case 'R':
                 bt_prev();
-                Serial.println("P_R_evious");
+                Serial.println(F("Go back to \"Previous\" Track"));
                 break;
             case 'A':
                 bt_vassistant();
-                Serial.println("_A_ssistant");
+                Serial.println(F("Invoking Voice Assistant"));
                 break;
+            case 'B':
+                bt_reboot();
+                Serial.println(F("Rebooting the RN52"));
+                break;
+            case 'd':
+            	driver.print_mac();
+            	break;
             default:
+                Serial.print(F("Invalid command."));
+#if (DEBUGMODE==1) // Need the extended watchdog period to show this help.
+            case 'H':
+                Serial.println(F(" Try one of these instead:"));
+                Serial.println(F(""));
+                Serial.println(F("V - Go into Discoverable Mode"));
+                Serial.println(F("I - Go into non-Discoverable but Connectable Mode"));
+                Serial.println(F("C - Reconnect to Last Known Device"));
+                Serial.println(F("D - Disconnect from Current Device"));
+                Serial.println(F("P - Play/Pause Current Track"));
+                Serial.println(F("N - Skip to Next Track"));
+                Serial.println(F("R - Previous Track/Beginning of Track"));
+                Serial.println(F("A - Invoke Voice Assistant"));
+                Serial.println(F("B - Reboot the RN52 module"));
+                Serial.println(F("H - Show this list of commands"));
+#endif
+                Serial.println(F(""));
                 break;
+            case ' ':
+            case '\t':
+            case '\r':
+            case '\n':
+                break; // just discard whitespace
         }
     }
 }

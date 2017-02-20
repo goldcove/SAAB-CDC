@@ -3,12 +3,12 @@
 # ----------------------------------
 # Embedded Computing on Xcode
 #
-# Copyright © Rei VILO, 2010-2016
+# Copyright © Rei VILO, 2010-2017
 # http://embedxcode.weebly.com
 # All rights reserved
 #
 #
-# Last update: Mar 07, 2016 release 4.3.9
+# Last update: Jan 10, 2017 release 6.0.6
 
 
 
@@ -20,12 +20,12 @@ include $(MAKEFILE_PATH)/About.mk
 #
 PLATFORM         := Arduino
 BUILD_CORE       := sam
-PLATFORM_TAG      = ARDUINO=10607 ARDUINO_ARCH_SAM EMBEDXCODE=$(RELEASE_NOW) ARDUINO_$(BOARD_NAME) $(filter __%__ ,$(GCC_PREPROCESSOR_DEFINITIONS))
+PLATFORM_TAG      = ARDUINO=10801 ARDUINO_ARCH_SAM EMBEDXCODE=$(RELEASE_NOW) ARDUINO_$(BOARD_NAME) $(filter __%__ ,$(GCC_PREPROCESSOR_DEFINITIONS))
 APPLICATION_PATH := $(ARDUINO_PATH)
-PLATFORM_VERSION := SAM $(ARDUINO_SAM_RELEASE) for Arduino $(ARDUINO_CC_RELEASE)
+PLATFORM_VERSION := SAM $(ARDUINO_SAM_RELEASE) for Arduino $(ARDUINO_IDE_RELEASE)
 
 HARDWARE_PATH     = $(ARDUINO_SAM_PATH)/hardware/sam/$(ARDUINO_SAM_RELEASE)
-TOOL_CHAIN_PATH   = $(ARDUINO_SAM_PATH)/tools/arm-none-eabi-gcc/4.8.3-2014q1
+TOOL_CHAIN_PATH   = $(ARDUINO_SAM_PATH)/tools/arm-none-eabi-gcc/$(ARDUINO_GCC_ARM_RELEASE)
 OTHER_TOOLS_PATH  = $(ARDUINO_SAM_PATH)/tools
 
 # New GCC for ARM tool-suite
@@ -57,14 +57,43 @@ VARIANT_OBJS        = $(patsubst $(HARDWARE_PATH)/%,$(OBJDIR)/%,$(VARIANT_OBJ_FI
 
 
 #
-# Uploader bossac
-# Tested by Mike Roberts
+# Uploader bossac tested by Mike Roberts
+# Uploader openocd tested by Peter
 #
-UPLOADER          = bossac
-UPLOADER_PATH     = $(OTHER_TOOLS_PATH)/bossac/$(BOSSAC_RELEASE)
-UPLOADER_EXEC     = $(UPLOADER_PATH)/bossac
-UPLOADER_PORT     = $(subst /dev/,,$(AVRDUDE_PORT))
-UPLOADER_OPTS     = -i -d --port=$(UPLOADER_PORT) -U $(call PARSE_BOARD,$(BOARD_TAG),upload.native_usb) -e -w -v -b
+ifeq ($(UPLOADER),openocd)
+# openocd -f interface/cmsis-dap.cfg -f target/at91sam3ax_8x.cfg -c "program embeddedcomputing.bin verify srst_only 0x00080000; shutdown" -d2
+    UPLOADER          = openocd
+#    UPLOADER_PATH    = $(OTHER_TOOLS_PATH)/openocd/0.9.0-arduino
+#    UPLOADER_EXEC    = $(UPLOADER_PATH)/bin/openocd
+    UPLOADER_EXEC    = openocd
+    UPLOADER_OPTS    = -d2
+#    UPLOADER_PATH    = -s $(UPLOADER_PATH)/share/openocd/scripts/
+    UPLOADER_OPTS   += -f interface/cmsis-dap.cfg -f target/at91sam3ax_8x.cfg
+    UPLOADER_COMMAND = program {{$(TARGET_BIN)}} verify srst_only 0x00080000; shutdown
+    COMMAND_UPLOAD   = $(UPLOADER_EXEC) $(UPLOADER_OPTS) -c "$(UPLOADER_COMMAND)"
+
+# ~
+else ifeq ($(UPLOADER),jlink)
+    UPLOADER         = jlink
+    UPLOADER_PATH    = $(APPLICATIONS_PATH)/SEGGER/JLink
+    UPLOADER_EXEC    = $(UPLOADER_PATH)/JLinkExe
+    UPLOADER_OPTS    = -device ATSAM3X8E -if swd -speed 4000 -commanderscript Utilities/upload.jlink
+    COMMAND_PREPARE  = printf 'r\nloadfile Builds/embeddedcomputing.hex\ng\nexit\n' > Utilities/upload.jlink
+
+    DEBUG_SERVER_PATH = $(APPLICATIONS_PATH)/SEGGER/JLink
+    DEBUG_SERVER_EXEC = $(DEBUG_SERVER_PATH)/JLinkGDBServer
+    # J-Link port 3333 for compatibility with OpenOCD
+    DEBUG_SERVER_OPTS = -device ATSAM3X8E -if swd -speed 4000 -port 3333
+# ~~
+
+else
+    UPLOADER          = bossac
+    UPLOADER_PATH     = $(OTHER_TOOLS_PATH)/bossac/$(ARDUINO_BOSSAC_RELEASE)
+    UPLOADER_EXEC     = $(UPLOADER_PATH)/bossac
+    UPLOADER_PORT     = $(subst /dev/,,$(AVRDUDE_PORT))
+    UPLOADER_OPTS     = -i -d --port=$(UPLOADER_PORT) -U $(call PARSE_BOARD,$(BOARD_TAG),upload.native_usb) -e -w -v -b
+    COMMAND_UPLOAD    = $(UPLOADER_EXEC) $(UPLOADER_OPTS) $(TARGET_BIN) -R
+endif
 
 # Sketchbook/Libraries path
 # wildcard required for ~ management
@@ -97,6 +126,9 @@ OBJDUMP = $(APP_TOOLS_PATH)/arm-none-eabi-objdump
 OBJCOPY = $(APP_TOOLS_PATH)/arm-none-eabi-objcopy
 SIZE    = $(APP_TOOLS_PATH)/arm-none-eabi-size
 NM      = $(APP_TOOLS_PATH)/arm-none-eabi-nm
+# ~
+GDB     = $(APP_TOOLS_PATH)/arm-none-eabi-gdb
+# ~~
 
 # Specific AVRDUDE location and options
 #
@@ -117,6 +149,7 @@ APP_LIB_PATH     = $(HARDWARE_PATH)/libraries
 sam165_00    = $(foreach dir,$(APP_LIB_PATH),$(patsubst %,$(dir)/%,$(APP_LIBS_LIST)))
 sam165_00   += $(foreach dir,$(APP_LIB_PATH),$(patsubst %,$(dir)/%/utility,$(APP_LIBS_LIST)))
 sam165_00   += $(foreach dir,$(APP_LIB_PATH),$(patsubst %,$(dir)/%/src,$(APP_LIBS_LIST)))
+sam165_00   += $(foreach dir,$(APP_LIB_PATH),$(patsubst %,$(dir)/%/src/utility,$(APP_LIBS_LIST)))
 sam165_00   += $(foreach dir,$(APP_LIB_PATH),$(patsubst %,$(dir)/%/src/arch/$(BUILD_CORE),$(APP_LIBS_LIST)))
 sam165_00   += $(foreach dir,$(APP_LIB_PATH),$(patsubst %,$(dir)/%/src/$(BUILD_CORE),$(APP_LIBS_LIST)))
 
@@ -132,7 +165,9 @@ BUILD_APP_LIB_PATH     = $(APPLICATION_PATH)/libraries
 sam165_10    = $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%,$(APP_LIBS_LIST)))
 sam165_10   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/utility,$(APP_LIBS_LIST)))
 sam165_10   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src,$(APP_LIBS_LIST)))
+sam165_10   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src/utility,$(APP_LIBS_LIST)))
 sam165_10   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src/arch/$(BUILD_CORE),$(APP_LIBS_LIST)))
+sam165_10   += $(foreach dir,$(BUILD_APP_LIB_PATH),$(patsubst %,$(dir)/%/src/$(BUILD_CORE),$(APP_LIBS_LIST)))
 
 BUILD_APP_LIB_CPP_SRC = $(foreach dir,$(sam165_10),$(wildcard $(dir)/*.cpp)) # */
 BUILD_APP_LIB_C_SRC   = $(foreach dir,$(sam165_10),$(wildcard $(dir)/*.c)) # */
@@ -169,20 +204,36 @@ F_CPU            = $(call PARSE_BOARD,$(BOARD_TAG),build.f_cpu)
 #
 USB_VID     := $(call PARSE_BOARD,$(BOARD_TAG),build.vid)
 USB_PID     := $(call PARSE_BOARD,$(BOARD_TAG),build.pid)
+USB_VENDOR  := $(call PARSE_BOARD,$(BOARD_TAG),build.usb_manufacturer)
 USB_PRODUCT := $(call PARSE_BOARD,$(BOARD_TAG),build.usb_product)
 
 USB_FLAGS    = -DUSB_VID=$(USB_VID)
 USB_FLAGS   += -DUSB_PID=$(USB_PID)
 USB_FLAGS   += -DUSBCON
-USB_FLAGS   += -DUSB_MANUFACTURER=''
+USB_FLAGS   += -DUSB_MANUFACTURER='$(USB_VENDOR)'
 USB_FLAGS   += -DUSB_PRODUCT='$(USB_PRODUCT)'
 
+# ~
+ifeq ($(UPLOADER),jlink)
+
+else
+# ~~
 # Arduino Due serial 1200 reset
 #
-USB_TOUCH := $(call PARSE_BOARD,$(BOARD_TAG),upload.protocol)
-USB_RESET  = python $(UTILITIES_PATH)/reset_1200.py
+    USB_TOUCH := $(call PARSE_BOARD,$(BOARD_TAG),upload.protocol)
+    USB_RESET  = python $(UTILITIES_PATH)/reset_1200.py
+# ~
+endif
+# ~~
 
-    OPTIMISATION   = -Os
+# ~
+ifeq ($(MAKECMDGOALS),debug)
+	OPTIMISATION  ?= -Os -g
+#    OPTIMISATION  ?= -Os -g
+else
+    OPTIMISATION  ?= -Os -g3
+endif
+# ~~
 
 INCLUDE_PATH    = $(CORE_LIB_PATH) $(APP_LIB_PATH) $(VARIANT_PATH)
 INCLUDE_PATH   += $(sort $(dir $(APP_LIB_CPP_SRC) $(APP_LIB_C_SRC) $(APP_LIB_H_SRC)))
@@ -244,11 +295,11 @@ OBJCOPYFLAGS  = -v -Obinary
 # Link command
 #
 FIRST_O_IN_LD   = $$(find . -name syscalls_sam3.c.o)
-COMMAND_LINK    = $(CC) $(LDFLAGS) $(OUT_PREPOSITION)$@ -L$(OBJDIR) -Wl,--start-group $(FIRST_O_IN_LD) $(SYSTEM_OBJS) $(LOCAL_OBJS) $(TARGET_A) -Wl,--end-group -lm -lgcc
+COMMAND_LINK    = $(CC) $(LDFLAGS) $(OUT_PREPOSITION)$@ -L$(OBJDIR) -Wl,--start-group $(FIRST_O_IN_LD) $(SYSTEM_OBJS) $(LOCAL_OBJS) $(LOCAL_ARCHIVES) $(TARGET_A) -Wl,--end-group -lm -lgcc
 
 # Upload command
 #
-COMMAND_UPLOAD  = $(UPLOADER_EXEC) $(UPLOADER_OPTS) $(TARGET_BIN) -R
+#COMMAND_UPLOAD  = $(UPLOADER_EXEC) $(UPLOADER_OPTS) $(TARGET_BIN) -R
 
 
 # Target

@@ -3,12 +3,12 @@
 # ----------------------------------
 # Embedded Computing on Xcode
 #
-# Copyright © Rei VILO, 2010-2016
+# Copyright © Rei VILO, 2010-2017
 # http://embedxcode.weebly.com
 # All rights reserved
 #
 #
-# Last update: Jan 16, 2016 release 4.1.7
+# Last update: Jan 17, 2016 release 5.0.4
 
 
 include $(MAKEFILE_PATH)/About.mk
@@ -17,15 +17,15 @@ include $(MAKEFILE_PATH)/About.mk
 # ----------------------------------
 #
 PLATFORM            := RedBearLab
-PLATFORM_TAG         = ARDUINO=10605 ARDUINO_BLEND ARDUINO_ARCH_AVR EMBEDXCODE=$(RELEASE_NOW)
+PLATFORM_TAG         = ARDUINO=10801 ARDUINO_BLEND ARDUINO_ARCH_AVR EMBEDXCODE=$(RELEASE_NOW)
 APPLICATION_PATH    := $(ARDUINO_PATH)
-PLATFORM_VERSION    := AVR $(REDBEARLAB_AVR_165) for Arduino $(ARDUINO_CC_RELEASE)
+PLATFORM_VERSION    := AVR $(REDBEARLAB_AVR_165) for Arduino $(ARDUINO_IDE_RELEASE)
 
-HARDWARE_PATH        = $(REDBEARLAB_AVR_PATH)/hardware/avr/$(REDBEARLAB_AVR_RELEASE)
+HARDWARE_PATH        = $(REDBEARLAB_AVR_PATH)/hardware/avr/$(REDBEAR_AVR_RELEASE)
 
 # With ArduinoCC 1.6.6, AVR 1.6.9 used to be under ~/Library
-TOOL_CHAIN_PATH   = $(ARDUINO_AVR_PATH)/tools/avr-gcc/$(AVR_GCC_RELEASE)
-OTHER_TOOLS_PATH  = $(ARDUINO_AVR_PATH)/tools/avrdude/$(AVRDUDE_RELEASE)
+TOOL_CHAIN_PATH   = $(ARDUINO_AVR_PATH)/tools/avr-gcc/$(ARDUINO_GCC_AVR_RELEASE)
+OTHER_TOOLS_PATH  = $(ARDUINO_AVR_PATH)/tools/avrdude/$(ARDUINO_AVRDUDE_RELEASE)
 
 # With ArduinoCC 1.6.7, AVR 1.6.9 is back under Arduino.app
 ifeq ($(wildcard $(TOOL_CHAIN_PATH)),)
@@ -38,13 +38,6 @@ endif
 BUILD_CORE           = avr
 BOARDS_TXT          := $(HARDWARE_PATH)/boards.txt
 #BUILD_CORE         = $(call PARSE_BOARD,$(BOARD_TAG),build.core)
-
-
-#UPLOADER            = teensy_flash
-# New with Teensyduino 1.21
-#TEENSY_FLASH_PATH   = $(APPLICATION_PATH)/hardware/tools/avr/bin
-#TEENSY_POST_COMPILE = $(TEENSY_FLASH_PATH)/teensy_post_compile
-#TEENSY_REBOOT       = $(TEENSY_FLASH_PATH)/teensy_reboot
 
 APP_TOOLS_PATH      := $(TOOL_CHAIN_PATH)/bin
 CORE_LIB_PATH       := $(APPLICATION_PATH)/hardware/arduino/$(BUILD_CORE)/cores/arduino
@@ -134,6 +127,10 @@ USB_PID             := $(call PARSE_BOARD,$(BOARD_TAG),build.pid)
 USB_MANUFACTURER    := $(call PARSE_BOARD,$(BOARD_TAG),build.usb_manufacturer)
 USB_PRODUCT         := $(call PARSE_BOARD,$(BOARD_TAG),build.usb_product)
 
+ifeq ($(USB_MANUFACTURER),)
+    USB_MANUFACTURER    := "RedBearLab"
+endif
+
 ifneq ($(USB_VID),)
     USB_FLAGS    = -DUSB_VID=$(USB_VID)
     USB_FLAGS   += -DUSB_PID=$(USB_PID)
@@ -142,11 +139,19 @@ ifneq ($(USB_VID),)
     USB_FLAGS   += -DUSB_PRODUCT='$(USB_PRODUCT)'
 endif
 
+USB_RESET  = python $(UTILITIES_PATH)/reset_1200.py
 
 MCU_FLAG_NAME    = mmcu
 MCU              = $(call PARSE_BOARD,$(BOARD_TAG),build.mcu)
 F_CPU            = $(call PARSE_BOARD,$(BOARD_TAG),build.f_cpu)
-OPTIMISATION     = -Os
+ifeq ($(MCU),)
+    MCU = atmega32u4
+endif
+ifeq ($(F_CPU),)
+    F_CPU = 16000000L
+endif
+
+OPTIMISATION    ?= -Os
 
 INCLUDE_PATH     = $(CORE_LIB_PATH) $(APP_LIB_PATH) $(VARIANT_PATH) $(HARDWARE_PATH)
 INCLUDE_PATH    += $(sort $(dir $(APP_LIB_CPP_SRC) $(APP_LIB_C_SRC) $(APP_LIB_H_SRC)))
@@ -173,7 +178,7 @@ CFLAGS           =
 # Specific CXXFLAGS for g++ only
 # g++ uses CPPFLAGS and CXXFLAGS
 #
-CXXFLAGS         = -fno-exceptions -fno-threadsafe-statics
+CXXFLAGS         = -fno-exceptions -fno-threadsafe-statics -std=gnu++11
 
 # Specific ASFLAGS for gcc assembler only
 # gcc assembler uses CPPFLAGS and ASFLAGS
@@ -199,12 +204,12 @@ OBJCOPYFLAGS  = -O ihex -R .eeprom
 #
 TARGET_HEXBIN    = $(TARGET_HEX)
 #-O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0
-TARGET_EEP       = $(OBJDIR)/$(TARGET).eep
+#TARGET_EEP       = $(OBJDIR)/$(TARGET).eep
 
 # Commands
 # ----------------------------------
 # Link command
 #
-COMMAND_LINK    = $(CC) $(OUT_PREPOSITION)$@ $(LOCAL_OBJS) $(TARGET_A) -LBuilds $(LDFLAGS)
+COMMAND_LINK    = $(CC) $(OUT_PREPOSITION)$@ $(LOCAL_OBJS) $(LOCAL_ARCHIVES) $(TARGET_A) -LBuilds $(LDFLAGS)
 
-COMMAND_UPLOAD  = $(AVRDUDE_EXEC) -p$(AVRDUDE_MCU) -D -c$(AVRDUDE_PROGRAMMER) -C$(AVRDUDE_CONF) -Uflash:w:$(TARGET_HEX):i
+COMMAND_UPLOAD  = $(AVRDUDE_EXEC) -p$(AVRDUDE_MCU) -D -c$(AVRDUDE_PROGRAMMER) -P$(USED_SERIAL_PORT) -b$(AVRDUDE_BAUDRATE) -C$(AVRDUDE_CONF) -Uflash:w:$(TARGET_HEX):i

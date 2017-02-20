@@ -18,11 +18,14 @@
  *
  * Created by: Tim Otto
  * Created on: Jun 21, 2013
- * Modified by: Karlis Veilands
- * Modified on: May 17, 2016
+ * Modified by: Sam Thompson
+ * Last modified on: Dec 16, 2016
  */
 
 #include "RN52impl.h"
+#include "RN52strings.h"
+
+#define DEBUGMODE 0
 
 /**
  * Reads the input (if any) from UART over software serial connection
@@ -32,6 +35,9 @@ void RN52impl::readFromUART() {
     while (softSerial.available()) {
         char c = softSerial.read();
         fromUART(c);
+//        if (currentCommand) {
+        cmdResponseDeadline = millis() + cmdResponseTimeout;
+//        }
     }
 }
 
@@ -54,21 +60,32 @@ void RN52impl::fromSPP(const char* c, int len){
 void RN52impl::setMode(Mode mode){
     if (mode == COMMAND) {
         digitalWrite(BT_CMD_PIN, LOW);
+#if (DEBUGMODE==1)
+        Serial.println(F("RN52: Set command mode."));
+#endif
     } else if (mode == DATA) {
         digitalWrite(BT_CMD_PIN, HIGH);
+#if (DEBUGMODE==1)
+        Serial.println(F("RN52: Set data mode. "));
+#endif
     }
 };
 
-const char *CMD_QUERY = "Q\r";
+void RN52impl::onError(int location, Error error){
+    Serial.print(F("RN52 Error "));
+    Serial.print(error);
+    Serial.print(F(" at location: "));
+    Serial.println(location);    
+};
+
 void RN52impl::onGPIO2() {
-    queueCommand(CMD_QUERY);
+    queueCommand(RN52_CMD_QUERY);
 }
 
 void RN52impl::onProfileChange(BtProfile profile, bool connected) {
     switch(profile) {
         case A2DP:bt_a2dp = connected;
             if (connected && playing) {
-                // Serial.println("DEBUG: RN52 connection ok; 'auto-play' should kick in now!");
                 sendAVCRP(RN52::RN52driver::PLAYPAUSE);
             }
             break;
@@ -84,6 +101,17 @@ void RN52impl::update() {
         if ((millis() - lastEventIndicatorPinStateChange) > 100) {
             lastEventIndicatorPinStateChange = millis();
             onGPIO2();
+#if (DEBUGMODE==1)
+            Serial.println(F("Event Indicator Pin signalled.")); 
+#endif
+        }
+    }
+    if ( (long)( millis() - cmdResponseDeadline ) >= 0) {
+        if (currentCommand) {
+            // timed out. Bail on command if there is one, and reset
+            cmdResponseDeadline = millis() + cmdResponseTimeout;
+            Serial.println(F("Warning: Command timed out: "));
+            abortCurrentCommand();
         }
     }
 }
@@ -93,48 +121,89 @@ void RN52impl::update() {
  */
 
 void RN52impl::initialize() {
+
+    // For hardware versions with 9600 baud locked, can set RN52 configuration after enabling it.
+    bool configRN52postEnable = false;
+  
+    // Values used for "smoothing" analogRead() results for hardware revision check
+    const int numOfReadings = 10;
+    int sumOfReadings = 0;
+    int hwRevisionCheckValue = 0;
+    
     softSerial.begin(9600);
     
-    // Initializing ATMEGA pins
-    pinMode(BT_PWREN_PIN,OUTPUT);
-    int revision = digitalRead(BT_PWREN_PIN);
-    if (revision == 0) { // PCB seems to be > v3.2
-        digitalWrite(BT_PWREN_PIN,HIGH);
+    for (int i = 0; i < numOfReadings; i++) {
+        sumOfReadings = sumOfReadings + analogRead(HW_REV_CHK_PIN);
     }
+    hwRevisionCheckValue = sumOfReadings / numOfReadings;
+    
+    // Initializing ATMEGA pins
+    pinMode(BT_PWREN_PIN,OUTPUT);               // RN52 will not be restartable if rebooted with PWREN low.
+    // No point in pulling low again.
+    // According to RN52 DS70005120A p14 (section 2.5), cannot power down vreg.
+    // Leaving high still allows pair timeout sleep.
     pinMode(BT_EVENT_INDICATOR_PIN,INPUT);
     pinMode(BT_CMD_PIN, OUTPUT);
-    pinMode(BT_FACT_RST_PIN,INPUT);             // Some REALLY crazy stuff is going on if this pin is set as output and pulled low. Leave it alone! Trust me...
-    pinMode(PIN_A2,OUTPUT);
-    pinMode(PIN_A3,OUTPUT);
-    pinMode(PIN_A4,OUTPUT);
-    pinMode(PIN_A5,OUTPUT);
+    pinMode(BT_FACT_RST_PIN,OUTPUT);            // Some REALLY crazy stuff is going on if this pin is set as output and pulled low. Leave it alone! Trust me...
+    pinMode(HW_REV_CHK_PIN,INPUT);              // We do an analogRead() on this pin to determine HW version of the module and take action accordingly
+    pinMode(SN_XCEIVER_RS_PIN,OUTPUT);
     digitalWrite(BT_EVENT_INDICATOR_PIN,HIGH);  // Default state of GPIO2, per data sheet, is HIGH
     digitalWrite(BT_CMD_PIN,HIGH);              // Default state of GPIO9, per data sheet, is HIGH
+    digitalWrite(BT_FACT_RST_PIN,HIGH);         // Default state of GPIO4, per data sheet, is LOW, but this is "voice command mode".
+
+#if (DEBUGMODE==1)
+    Serial.print(F("Revision check value: "));
+    Serial.println(hwRevisionCheckValue);
+#endif
     
+    switch (hwRevisionCheckValue) {
+        case 38 ... 52:                             // PCBs v3.3A, v4.1 or v4.2 (100K/5K Ohm network); TODO: make sure the correct resistors are soldered on!!!
+            Serial.println(F("Hardware version: v3.3A/v4.1/v4.2"));
+            digitalWrite(BT_PWREN_PIN,HIGH);
+            break;
+        case 83 ... 97:                             // PCB v4.3 (100K/10K Ohm network)
+            Serial.println(F("Hardware version: v4.3"));
+            digitalWrite(SN_XCEIVER_RS_PIN,LOW);    // This pin needs to be pulled low, otherwise SN65HVD251D CAN transciever goes into sleep mode
+            digitalWrite(BT_PWREN_PIN,HIGH);        // RN52 will not be restartable if rebooted with PWREN low. No point in pulling low again. According to RN52 DS70005120A p14 (section 2.5), cannot power down vreg.
+            break;
+        case 161 ... 175:                           // PCB v5.0 (100K/20K Ohm network)
+            Serial.println(F("Hardware version: v5.0"));
+            digitalWrite(SN_XCEIVER_RS_PIN,LOW);    // This pin needs to be pulled low, otherwise SN65HVD251D CAN transciever goes into sleep mode
+            digitalWrite(BT_PWREN_PIN,HIGH);        // RN52 will not be restartable if rebooted with PWREN low. No point in pulling low again. According to RN52 DS70005120A p14 (section 2.5), cannot power down vreg.
+            configRN52postEnable = true;
+            break;
+        case 197 ... 213:                           // PCB v5.1 (100K/25K Ohm network)
+            Serial.println(F("Hardware version: v5.1"));
+            digitalWrite(SN_XCEIVER_RS_PIN,LOW);    // This pin needs to be pulled low, otherwise SN65HVD251D CAN transciever goes into sleep mode
+            digitalWrite(BT_PWREN_PIN,HIGH);        // RN52 will not be restartable if rebooted with PWREN low. No point in pulling low again. According to RN52 DS70005120A p14 (section 2.5), cannot power down vreg.
+            // Need to add 555 stuff?
+            configRN52postEnable = true;
+            break;
+        default:                                    // PCB revision is older than v3.3A; PWREN is hardwired to 3v3; no other action needs to be taken
+            Serial.println(F("Hardware version: Legacy"));
+            break;
+    }    
     // Configuring RN52
-    /*
-    Serial.print("Configuring RN52... ");
-    set_discovery_mask();
-    waitForResponse();
-    set_connection_mask();
-    waitForResponse();
-    set_cod();
-    waitForResponse();
-    set_device_name();
-    waitForResponse();
-    set_normalized_name();
-    waitForResponse();
-    set_max_volume();
-    waitForResponse();
-    set_extended_features();
-    waitForResponse();
-    reboot();
-    Serial.println("Done!");
-     */
+    if (configRN52postEnable) {
+        Serial.println(F("Configuring RN52... "));
+        set_discovery_mask();
+        set_connection_mask();
+        set_cod();
+        set_device_name();
+        set_extended_features();
+        set_max_volume();
+        set_pair_timeout();
+        reboot();
+        processCmdQueue();
+        Serial.println(F("RN52 configuration completed!"));
+    }
 }
 
-void RN52impl::waitForResponse() {
+void RN52impl::processCmdQueue() {
+#if (DEBUGMODE==1)
+    Serial.println(F("Processing command queue."));
+#endif
     do {
         update();
-    } while (currentCommand != NULL);
+    } while (getQueueSize() || currentCommand != NULL); //FIXME: fails if only 1 cmd in the queue to start.
 }
